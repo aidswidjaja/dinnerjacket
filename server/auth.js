@@ -1,35 +1,19 @@
 const https = require('https')
 const querystring = require('querystring')
 
-const siteURL = 'http://localhost:3000'
+const siteURL = 'http://dinnerjacket-xyz.adrian.id.au:3000'
 
 module.exports = (app) => {
   'use strict'
   
   const redirect_uri = siteURL + '/callback'
   const client_id = 'DinnerJacket_dev'
-  const client_secret = 'lve26aPJH_zzKPHBUrVAcpIGhjQ' // OOP pls no delet isacs
+  const client_secret = 'lve26aPJH_zzKPHBUrVAcpIGhjQ' // um why is the client secret hardcoded into the webserver ._.
   
-  // redirect to SBHS API to start OAuth2 dance
-  app.get('/login', (req, res) => {
-    console.log('redirecting to SBHS API')
-    res.redirect('https://student.sbhs.net.au/api/authorize?response_type=code&scope=all-ro&state=abc&client_id='+client_id+'&client_secret='+client_secret+'&redirect_uri='+redirect_uri)
-  })
-
-  /* === TOKEN FORMAT =================================================================*
-  |                                                                                    |
-  |   {                                                                                |
-  |     access_token: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',  (40 char alphanum.) |
-  |     expires_in: 3600,                                                              |
-  |     token_type: 'Bearer',                                                          |
-  |     scope: 'all-ro',                                                               |
-  |     refresh_token: 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX', (40 char alphanum.) |
-  |     expires_at: '2018-02-24T02:54:54.925Z'                                         |
-  |   }                                                                                |
-  |                                                                                    |
-  *====================================================================================*/
+  // removed SBHS API for testing
 
   // SBHS API will redirect to this URL with code
+  
   app.get('/callback', (req, res) => {
     console.log('exchanging auth code for tokens')
     let promise = new Promise( function (resolve, reject) {
@@ -88,65 +72,6 @@ module.exports = (app) => {
       
       // redirect back
       res.redirect(siteURL)
-    })
-  })
-  
-  // returns access and refresh tokens with expiry
-  app.get('/gettoken', (req, res) => {
-    const token = req.session.token
-    console.log('gettoken: ' + token)
-    if ((token != undefined) && (req.session.refreshTokenExpiry != undefined)) {
-      console.log('gettoken: sending data')
-      res.send([token.access_token, token.refresh_token, req.session.refreshTokenExpiry])
-    } else {
-      console.log('gettoken: sending false')
-      res.send(false)
-    }
-  })
-  
-  // called by client to use refresh token to get a new access token
-  app.get('/getnewaccesstoken', (req, res) => {
-    console.log('getting new access token')
-    
-    const postData = querystring.stringify({
-                       refresh_token: req.query.rt,
-                       grant_type: 'refresh_token',
-                       client_id: client_id,
-                       client_secret: client_secret
-                     })
-          
-    const httpsOptions = {
-      hostname: 'student.sbhs.net.au',
-      path: '/api/token',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Content-Length': Buffer.byteLength(postData)
-      }
-    }
-    
-    let promise = new Promise( function (resolve, reject) {
-      const req1 = https.request(httpsOptions, (res1) => {
-        res1.setEncoding('utf8')
-        var body = ''
-        res1.on('data', (data)=>{
-          body += data
-        })
-        
-        res1.on('end', ()=> {
-          resolve(body)
-        })
-      })
-      
-      // write post data to req.
-      req1.write(postData)
-      
-      req1.end()
-    })
-    
-    promise.then(function(result) {
-      console.log('access token refreshed')
-      res.send(JSON.parse(result).access_token)
     })
   })
   
@@ -209,6 +134,7 @@ module.exports = (app) => {
   })
 
   // for testing
+  // nice maths :D
   app.get('/secret', (req, res) => {
     let returnVal =
        ' <p style="line-height:1">\
